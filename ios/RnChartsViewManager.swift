@@ -1,4 +1,4 @@
-
+import Charts
 
 @objc(RnChartsViewManager)
 class RnChartsViewManager: RCTViewManager {
@@ -13,7 +13,7 @@ class RnChartsViewManager: RCTViewManager {
 }
 
 class RnChartsView : UIView {
-    let chartView: StockChartView
+    let chartView: CandleStickChartView
     
     private lazy var formatter: DateFormatter = {
         let fornatter = DateFormatter()
@@ -40,46 +40,86 @@ class RnChartsView : UIView {
     @objc
     func setAddCandle(_ candle: NSDictionary) {
         debugPrint("=====", candle)
-        candlesticks.append(createCandlestick(item: candle as! [String : Any]))
-        chartView.didInsertData()
+        
+        let stick = createCandlestick(index: chartView.data?.entryCount ?? 0, item: candle as! [String : Any])
+        chartView.data?.appendEntry(stick, toDataSet: 0)
+        chartView.notifyDataSetChanged()
     }
     
-    private var candlesticks: [Candlestick] = []
+    private var candlesticks: [CandleChartDataEntry] = []
     
-    private func createCandlestick(item: [String: Any]) -> Candlestick {
-        var stick = Candlestick()
-        stick.close = item["close"] as! Double
-        stick.open = item["open"] as! Double
-        stick.low = item["low"] as! Double
-        stick.high = item["high"] as! Double
-        stick.volume = item["high"] as! Double
-        stick.volume = item["volume"] as! Double
-        stick.date = Date(timeIntervalSince1970: (item["time"] as! Double) / 1000)
+    private func createCandlestick(index: Int, item: [String: Any]) -> CandleChartDataEntry {
+        var stick = CandleChartDataEntry(
+            x: Double(index),
+            shadowH: item["high"] as! Double,
+            shadowL: item["low"] as! Double,
+            open: item["open"] as! Double,
+            close: item["close"] as! Double
+        )
+        
         return stick
     }
     
     private func serData(data: [[String: Any]]) {
         candlesticks.removeAll(keepingCapacity: true)
+        var index: Int = -1
         for item in data {
-            candlesticks.append(createCandlestick(item: item))
+            index += 1
+            candlesticks.append(createCandlestick(index: index, item: item))
         }
+        
+        let set1 = CandleChartDataSet(entries: candlesticks, label: "Data Set")
+        set1.drawIconsEnabled = false
+        set1.axisDependency = .left
+        set1.setColor(UIColor(white: 80/255, alpha: 1))
+
+        set1.shadowColor = .darkGray
+        set1.shadowWidth = 0.7
+        set1.decreasingColor = .red
+        set1.decreasingFilled = true
+        set1.increasingColor = UIColor.green
+        set1.increasingFilled = true
+        set1.neutralColor = .blue
+        set1.drawValuesEnabled = false
+        
+        let data = CandleChartData(dataSet: set1)
+        chartView.data = data
+        
+        chartView.setScaleMinima(4, scaleY: 1)
+        chartView.pinchZoomEnabled = false
+        chartView.scaleXEnabled = true
+        chartView.scaleYEnabled = false
+        chartView.moveViewToX(Double(chartView.data?.entryCount ?? 0))
     }
     
     override init(frame: CGRect) {
-        chartView = StockChartView()
+        chartView = CandleStickChartView()
         super.init(frame: frame)
         addSubview(chartView)
-        initChart()
+
+        chartView.chartDescription.enabled = false
+        
+        chartView.dragEnabled = true
+        chartView.gridBackgroundColor = .clear
+        chartView.backgroundColor = .clear
+        chartView.maxVisibleCount = 60
+        chartView.pinchZoomEnabled = false
+        chartView.drawGridBackgroundEnabled = false
+        
+        chartView.xAxis.labelPosition = .bottom
+        chartView.xAxis.drawGridLinesEnabled = false
+        
+        chartView.leftAxis.labelCount = 7
+        chartView.leftAxis.drawGridLinesEnabled = false
+        chartView.leftAxis.drawAxisLineEnabled = false
+        
+
+        chartView.rightAxis.enabled = false
+        chartView.legend.enabled = false
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-    
-    
-    private func initChart() {
-        chartView.dataSource = self
-        chartView.delegate = self
     }
     
     
@@ -89,104 +129,4 @@ class RnChartsView : UIView {
     }
     
    
-}
-
-
-extension RnChartsView: StockChartViewDataSource {
-    func numberOfCandlesticks() -> Int {
-        return candlesticks.count
-    }
-    
-    func numberOfLines() -> Int {
-        return 0
-    }
-    
-    func candlestick(atIndex index: Int) -> Candlestick {
-        return candlesticks[index]
-    }
-    
-    func line(atIndex index: Int) -> Line {
-        return Line(values: [])
-    }
-    
-    func format(volume: CGFloat, forElement: Element) -> String {
-        return String(format: "%.0f", volume)
-    }
-    
-    func format(price: CGFloat, forElement: Element) -> String {
-        return String(format: "%.3f", price)
-    }
-    
-    func format(date: Date, forElement: Element) -> String {
-        return formatter.string(from: date)
-    }
-    
-    func color(forLineAtIndex index: Int) -> CGColor {
-        switch index {
-        case 0:
-            return UIColor(hex: 0xe8de85, alpha: 1).cgColor
-        default:
-            return UIColor(hex: 0xe8de85, alpha: 1).cgColor
-        }
-    }
-    
-    // TODO optimize
-    func bounds(inVisibleRange visibleRange: CandlestickRange, maximumVisibleCandles: Int) -> GraphBounds {
-        print("GET BOUNDS")
-        let buffer = maximumVisibleCandles / 2
-        let startIndex = max(0, visibleRange.lowerBound - buffer)
-        let endIndex = max(startIndex, min(candlesticks.count - 1, visibleRange.upperBound + buffer))
-        
-        var maxPrice = CGFloat.leastNormalMagnitude
-        var minPrice = CGFloat.greatestFiniteMagnitude
-        var maxVolume = CGFloat.leastNormalMagnitude
-        var minVolume = CGFloat.greatestFiniteMagnitude
-        let range = startIndex...endIndex
-        
-        guard startIndex < endIndex else {
-            return GraphBounds()
-        }
-        
-        for index in range {
-            let entity = candlesticks[index]
-            maxPrice = max(maxPrice, entity.high)
-            minPrice = min(minPrice, entity.low)
-            
-            maxVolume = max(maxVolume, entity.volume)
-            minVolume = min(minVolume, entity.volume)
-        }
-        
-        return GraphBounds(
-            price: Bounds(min: minPrice, max: maxPrice),
-            volume: Bounds(min: 0, max: 0)
-        )
-    }
-}
-
-extension RnChartsView: StockChartViewDelegate {
-    func performedLongPressGesture(atIndex index: Int) {
-        chartView.showDetails(forCandleAtIndex: index)
-    }
-    
-    func releasedLongPressGesture() {
-        chartView.hideDetails()
-    }
-    
-    func performedTap(atIndex index: Int) {
-//        if lineBriefView.isHidden {
-//            chartView.showDetails(forCandleAtIndex: index)
-//        } else {
-//            chartView.hideDetails()
-//        }
-    }
-    
-    func showedDetails(atIndex index: Int){
-//        let candlestick = graphData.candlesticks[index]
-//        lineBriefView.configureView(candlestick: candlestick)
-//        lineBriefView.isHidden = false
-    }
-    
-    func hidDetails() {
-        //lineBriefView.isHidden = true
-    }
 }
