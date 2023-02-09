@@ -37,7 +37,7 @@ interface CandleStick {
 }
 
 export interface CandleSticksChartRef {
-  append: (item: CandleStick) => void;
+  append: (items: CandleStick[]) => void;
 }
 
 interface Props {
@@ -51,7 +51,7 @@ export const CandleSticksChart = memo(
     useImperativeHandle(
       ref,
       () => ({
-        append: (item) => _ref.current?.setNativeProps({ addCandle: item }),
+        append: (item) => _ref.current?.setNativeProps({ addCandles: item }),
       }),
       []
     );
