@@ -18,7 +18,7 @@ class RnChartsViewManager : SimpleViewManager<CandleStick>() {
 
   var isAddEnabled = true
 
-  @ReactProp(name = "data")
+  @ReactProp(name = "newData")
   fun setData(chart: CandleStick, data: ReadableArray) {
     chart.setData(data)
   }
