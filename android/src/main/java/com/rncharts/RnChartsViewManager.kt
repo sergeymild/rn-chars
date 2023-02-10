@@ -10,7 +10,7 @@ import com.facebook.react.uimanager.annotations.ReactProp
 typealias CandleStick = AppCandleStickChart
 
 class RnChartsViewManager : SimpleViewManager<CandleStick>() {
-  override fun getName() = "AppCandleChartView"
+  override fun getName() = "AppCandleStickChartView"
 
   override fun createViewInstance(reactContext: ThemedReactContext): CandleStick {
     return CandleStick(reactContext)
