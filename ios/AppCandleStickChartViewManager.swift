@@ -63,7 +63,7 @@ class AppCandleStickChart: CandleStickChartView {
   }
   
   @objc
-  func serData(_ candles: NSArray) {
+  func setNewData(_ candles: NSArray) {
     candlesticks.removeAll(keepingCapacity: true)
     var index: Int = -1
     for item in candles.enumerated() {
