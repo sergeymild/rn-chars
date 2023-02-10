@@ -18,7 +18,7 @@ type RnChartsProps = {
   style: ViewStyle;
 };
 
-const ComponentName = 'RnChartsView';
+const ComponentName = 'AppCandleChartView';
 
 const RnChartsView: any =
   UIManager.getViewManagerConfig(ComponentName) != null
@@ -36,7 +36,7 @@ interface CandleStick {
   volume: number;
 }
 
-export interface CandleSticksChartRef {
+export interface AppCandleChartViewRef {
   append: (items: CandleStick[]) => void;
 }
 
@@ -45,8 +45,8 @@ interface Props {
   readonly style?: StyleProp<ViewStyle>;
 }
 
-export const CandleSticksChart = memo(
-  forwardRef<CandleSticksChartRef, Props>((props, ref) => {
+export const AppCandleChartView = memo(
+  forwardRef<AppCandleChartViewRef, Props>((props, ref) => {
     const _ref = useRef<any>(null);
     useImperativeHandle(
       ref,

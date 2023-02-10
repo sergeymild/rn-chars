@@ -3,8 +3,8 @@ import { useEffect, useRef } from 'react';
 
 import { StyleSheet, View } from 'react-native';
 import {
-  CandleSticksChart,
-  CandleSticksChartRef,
+  AppCandleChartView,
+  AppCandleChartViewRef,
 } from 'react-native-rn-charts';
 
 const candles = [
@@ -839,14 +839,16 @@ function getRandomArbitrary(min: number, max: number) {
 }
 
 export default function App() {
-  const chartRef = useRef<CandleSticksChartRef>(null);
+  const chartRef = useRef<AppCandleChartViewRef>(null);
   useEffect(() => {
     const id = setInterval(() => {
       const l = getRandomArbitrary(0, candles.length - 1);
-      chartRef.current?.append({
-        ...candles[l]!,
-        time: Date.now(),
-      });
+      chartRef.current?.append([
+        {
+          ...candles[l]!,
+          time: Date.now(),
+        },
+      ]);
     }, 1000);
 
     return () => {
@@ -856,7 +858,7 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <CandleSticksChart ref={chartRef} data={candles} style={styles.box} />
+      <AppCandleChartView ref={chartRef} data={candles} style={styles.box} />
     </View>
   );
 }
